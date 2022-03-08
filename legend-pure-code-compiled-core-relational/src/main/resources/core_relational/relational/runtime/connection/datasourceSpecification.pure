@@ -64,4 +64,7 @@ Class meta::pure::alloy::connections::alloy::specification::BigQueryDatasourceSp
 {
     projectId:String[1];
     defaultDataset:String[1];
+    proxyHost: String[0..1];
+    proxyPort: String[0..1];
+    rootUrl: String[0..1];
 }

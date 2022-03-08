@@ -215,7 +215,10 @@ function meta::protocols::pure::vX_X_X::transformation::fromPureGraph::connectio
          ^meta::protocols::pure::vX_X_X::metamodel::store::relational::connection::alloy::specification::BigQueryDatasourceSpecification(
              _type = 'bigQuery',
              projectId = $b.projectId,
-             defaultDataset = $b.defaultDataset
+             defaultDataset = $b.defaultDataset,
+             proxyHost = $b.proxyHost,
+             proxyPort = $b.proxyPort,
+             rootUrl = $b.rootUrl
          )
    ])->toOneMany())
 }
