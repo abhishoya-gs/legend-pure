@@ -36,11 +36,20 @@ public class PureJarMojo extends AbstractMojo
     @Parameter(readonly = true, defaultValue = "${project.build.outputDirectory}")
     private File outputDirectory;
 
+    @Parameter(readonly = true, defaultValue = "${project.build.testOutputDirectory}")
+    private File testOutputDirectory;
+
     @Parameter
     private File sourceDirectory;
 
     @Parameter
     private Set<String> repositories;
+
+    @Parameter(defaultValue = "false")
+    private boolean generateTest;
+
+    @Parameter(defaultValue = "false")
+    private boolean skip;
 
     @Parameter
     private Set<String> excludedRepositories;
@@ -60,6 +69,9 @@ public class PureJarMojo extends AbstractMojo
                     this.modelVersion,
                     this.sourceDirectory,
                     this.outputDirectory,
+                    this.testOutputDirectory,
+                    generateTest,
+                    skip,
                     new Log()
                     {
                         @Override

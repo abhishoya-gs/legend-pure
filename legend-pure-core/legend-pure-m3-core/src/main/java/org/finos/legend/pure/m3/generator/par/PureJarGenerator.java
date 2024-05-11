@@ -26,6 +26,7 @@ import org.finos.legend.pure.m3.serialization.runtime.ParserService;
 
 import java.io.File;
 import java.net.URL;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Set;
 
@@ -36,7 +37,7 @@ public class PureJarGenerator
         String purePlatformVersion = args[0];
         String repositories = args[1];
         String outputDirectory = args[2];
-        doGeneratePAR(Sets.mutable.with(repositories), Sets.mutable.empty(), Sets.mutable.empty(), purePlatformVersion, null, null, new File(outputDirectory), new Log()
+        doGeneratePAR(Sets.mutable.with(repositories), Sets.mutable.empty(), Sets.mutable.empty(), purePlatformVersion, null, null, new File(outputDirectory), null, false, false, new Log()
         {
             @Override
             public void info(String txt)
@@ -54,18 +55,24 @@ public class PureJarGenerator
     }
 
 
-    public static void doGeneratePAR(Set<String> repositories, Set<String> excludedRepositories, Set<String> extraRepositories, String purePlatformVersion, String modelVersion, File sourceDirectory, File outputDirectory, Log log) throws Exception
+    public static void doGeneratePAR(Set<String> repositories, Set<String> excludedRepositories, Set<String> extraRepositories, String purePlatformVersion, String modelVersion, File sourceDirectory, File outputDirectory, File testOutputDirectory, boolean generateTest, boolean skip, Log log) throws Exception
     {
         long start = System.nanoTime();
         try
         {
+            if (skip)
+            {
+                log.info("Skipping Pure PAR generation");
+                return;
+            }
+
             ParserService ps = new ParserService();
 
             log.info("Generating Pure PAR file(s)");
             log.info("  Requested repositories: " + repositories);
             log.info("  Excluded repositories: " + excludedRepositories);
             log.info("  Extra repositories: " + extraRepositories);
-            CodeRepositorySet resolvedRepositories = resolveRepositories(repositories, excludedRepositories, extraRepositories, log);
+            CodeRepositorySet resolvedRepositories = resolveRepositories(repositories, excludedRepositories, extraRepositories, outputDirectory.toPath(), log);
             log.info("  Specified repositories (with resolved dependencies): " + resolvedRepositories.getRepositories().collect(CodeRepository::getName).makeString("[", ",", "]"));
             log.info("  Register DSLs: " + ps.parsers().collect(Parser::getName).makeString(", "));
             log.info("  Register in-line DSLs: " + ps.inlineDSLs().collect(InlineDSL::getName).makeString(", "));
@@ -73,9 +80,11 @@ public class PureJarGenerator
             log.info("  Model version: " + modelVersion);
             log.info("  Pure source directory: " + sourceDirectory);
             log.info("  Output directory: " + outputDirectory);
+            log.info("  Test Output directory: " + testOutputDirectory);
+            log.info("  Generate Test: " + generateTest);
 
             log.info("  Starting compilation and generation of Pure PAR file(s)");
-            PureJarSerializer.writePureRepositoryJars(outputDirectory.toPath(), (sourceDirectory == null) ? null : sourceDirectory.toPath(), purePlatformVersion, modelVersion, resolvedRepositories, log);
+            PureJarSerializer.writePureRepositoryJars(outputDirectory.toPath(), (testOutputDirectory == null) ? null : testOutputDirectory.toPath(), (sourceDirectory == null) ? null : sourceDirectory.toPath(), purePlatformVersion, modelVersion, resolvedRepositories, generateTest, log);
         }
         catch (Exception e)
         {
@@ -85,7 +94,7 @@ public class PureJarGenerator
         log.info(String.format("  -> Finished Pure PAR generation in %.9fs", durationSinceInSeconds(start)));
     }
 
-    private static CodeRepositorySet resolveRepositories(Set<String> repositories, Set<String> excludedRepositories, Set<String> extraRepositories, Log log)
+    private static CodeRepositorySet resolveRepositories(Set<String> repositories, Set<String> excludedRepositories, Set<String> extraRepositories, Path outputDirectory, Log log)
     {
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
         RichIterable<CodeRepository> cpRepositories = CodeRepositoryProviderHelper.findCodeRepositories(classLoader, true);

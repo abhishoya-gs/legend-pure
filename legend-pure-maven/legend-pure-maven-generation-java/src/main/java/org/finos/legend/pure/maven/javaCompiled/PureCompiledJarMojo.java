@@ -46,6 +46,9 @@ public class PureCompiledJarMojo extends AbstractMojo
     @Parameter(readonly = true, defaultValue = "${project.build.outputDirectory}")
     private File classesDirectory;
 
+    @Parameter(readonly = true, defaultValue = "${project.build.testOutputDirectory}")
+    private File testClassesDirectory;
+
     @Parameter(defaultValue = "false")
     private boolean skip;
 
@@ -75,6 +78,9 @@ public class PureCompiledJarMojo extends AbstractMojo
 
     @Parameter(defaultValue = "false")
     private boolean generateSources;
+
+    @Parameter(defaultValue = "false")
+    private boolean generateTest;
 
     @Parameter(defaultValue = "false")
     private boolean preventJavaCompilation;
@@ -113,8 +119,8 @@ public class PureCompiledJarMojo extends AbstractMojo
         long start = System.nanoTime();
         try
         {
-            Thread.currentThread().setContextClassLoader(buildClassLoader(this.project, savedClassLoader, log));
-            JavaCodeGeneration.doIt(repositories, excludedRepositories, extraRepositories, generationType, skip, addExternalAPI, externalAPIPackage, generateMetadata, useSingleDir, generateSources, false, preventJavaCompilation, classesDirectory, targetDirectory, log);
+            Thread.currentThread().setContextClassLoader(buildClassLoader(this.project, generateTest, savedClassLoader, log));
+            JavaCodeGeneration.doIt(repositories, excludedRepositories, extraRepositories, generationType, skip, addExternalAPI, externalAPIPackage, generateMetadata, useSingleDir, generateSources, generateTest, preventJavaCompilation, generateTest ? testClassesDirectory : classesDirectory, targetDirectory, log);
         }
         catch (Exception e)
         {
@@ -130,10 +136,10 @@ public class PureCompiledJarMojo extends AbstractMojo
 
 
 
-    private ClassLoader buildClassLoader(MavenProject project, ClassLoader parent, Log log) throws DependencyResolutionRequiredException
+    private ClassLoader buildClassLoader(MavenProject project, boolean generateTest, ClassLoader parent, Log log) throws DependencyResolutionRequiredException
     {
         // Add the project output to the plugin classloader
-        URL[] urlsForClassLoader = ListIterate.collect(project.getCompileClasspathElements(), mavenCompilePath ->
+        URL[] urlsForClassLoader = ListIterate.collect(generateTest ? project.getTestClasspathElements() : project.getCompileClasspathElements(), mavenCompilePath ->
         {
             try
             {

@@ -71,6 +71,8 @@ import org.finos.legend.pure.m4.coreinstance.SourceInformation;
 import org.finos.legend.pure.m4.serialization.binary.BinaryReaders;
 
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.RecursiveTask;
 
@@ -715,15 +717,25 @@ public class GraphLoader
 
     public static MutableList<PureRepositoryJar> findJars(MutableList<String> repoNames, ClassLoader classLoader, Message message)
     {
-        return repoNames.collect(repoName -> findJar(repoName, classLoader, message));
+        return repoNames.collect(repoName -> findJar(repoName, classLoader, null, message));
     }
 
-    private static PureRepositoryJar findJar(String repoName, ClassLoader classLoader, Message message)
+    public static MutableList<PureRepositoryJar> findJars(MutableList<String> repoNames, ClassLoader classLoader, Path outputDirectory, Message message)
+    {
+        return repoNames.collect(repoName -> findJar(repoName, classLoader, outputDirectory, message));
+    }
+
+    private static PureRepositoryJar findJar(String repoName, ClassLoader classLoader, Path outputDirectory, Message message)
     {
         String resourceName = "pure-" + repoName + ".par";
         URL url = classLoader.getResource(resourceName);
         if (url == null)
         {
+            if (outputDirectory != null && Files.exists(outputDirectory.resolve(resourceName)))
+            {
+                message.setMessage("  Found " + resourceName + " at " + outputDirectory.resolve(resourceName));
+                return PureRepositoryJars.get(outputDirectory.resolve(resourceName));
+            }
             throw new RuntimeException("Could not find resource: " + resourceName);
         }
         message.setMessage("  Found " + resourceName + " at " + url);

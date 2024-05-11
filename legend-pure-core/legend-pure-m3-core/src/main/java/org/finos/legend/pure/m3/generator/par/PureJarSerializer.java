@@ -43,12 +43,12 @@ public class PureJarSerializer
 {
     public static final String ARCHIVE_FILE_EXTENSION = "par";
 
-    public static void writePureRepositoryJars(Path outputDirectory, Path sourceDirectory, String platformVersion, String modelVersion, CodeRepositorySet repositories, Log log) throws IOException
+    public static void writePureRepositoryJars(Path outputDirectory, Path testOutputDirectory, Path sourceDirectory, String platformVersion, String modelVersion, CodeRepositorySet repositories, boolean generateTest, Log log) throws IOException
     {
-        writePureRepositoryJars(outputDirectory, sourceDirectory, platformVersion, modelVersion, repositories, Thread.currentThread().getContextClassLoader(), log);
+        writePureRepositoryJars(outputDirectory, testOutputDirectory, sourceDirectory, platformVersion, modelVersion, repositories, Thread.currentThread().getContextClassLoader(), generateTest, log);
     }
 
-    public static void writePureRepositoryJars(Path outputDirectory, Path sourceDirectory, String platformVersion, String modelVersion, CodeRepositorySet repositories, ClassLoader classLoader, Log log) throws IOException
+    public static void writePureRepositoryJars(Path outputDirectory, Path testOutputDirectory, Path sourceDirectory, String platformVersion, String modelVersion, CodeRepositorySet repositories, ClassLoader classLoader, boolean generateTest, Log log) throws IOException
     {
         PureRuntime runtime;
         RichIterable<CodeRepository> repositoriesToSerialize;
@@ -84,7 +84,7 @@ public class PureJarSerializer
 
             // Load the PARS
             Message message = getMessage(log, "    ");
-            PureRepositoryJarLibrary jarLibrary = SimplePureRepositoryJarLibrary.newLibrary(GraphLoader.findJars(repositoriesWithoutSource.collect(CodeRepository::getName), classLoader, message));
+            PureRepositoryJarLibrary jarLibrary = SimplePureRepositoryJarLibrary.newLibrary(GraphLoader.findJars(repositoriesWithoutSource.collect(CodeRepository::getName), classLoader, outputDirectory, message));
             GraphLoader loader = new GraphLoader(runtime.getModelRepository(), runtime.getContext(), runtime.getIncrementalCompiler().getParserLibrary(), runtime.getIncrementalCompiler().getDslLibrary(), runtime.getSourceRegistry(), runtime.getURLPatternLibrary(), jarLibrary);
             loader.loadAll(message);
 
@@ -105,12 +105,21 @@ public class PureJarSerializer
             repositoriesToSerialize = repositoriesWithSource;
             log.info("      -> Finished compilation");
         }
-
-        Files.createDirectories(outputDirectory);
+        Path finalOutputDirectory;
+        if (generateTest)
+        {
+            finalOutputDirectory = testOutputDirectory;
+        }
+        else
+        {
+            finalOutputDirectory = outputDirectory;
+        }
+        log.info("    Final Output Directory" + finalOutputDirectory);
+        Files.createDirectories(finalOutputDirectory);
         log.info("    *Starting serialization");
         for (String repositoryName : repositoriesToSerialize.collect(CodeRepository::getName))
         {
-            Path outputFile = outputDirectory.resolve("pure-" + repositoryName + "." + ARCHIVE_FILE_EXTENSION);
+            Path outputFile = finalOutputDirectory.resolve("pure-" + repositoryName + "." + ARCHIVE_FILE_EXTENSION);
             log.info("      Writing " + outputFile);
             try (OutputStream outputStream = new BufferedOutputStream(Files.newOutputStream(outputFile)))
             {
